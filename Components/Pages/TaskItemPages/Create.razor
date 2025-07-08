@@ -1,0 +1,161 @@
+﻿@page "/taskitems/create"
+@using Microsoft.EntityFrameworkCore
+@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject ILogger<TaskItem> Logger
+@rendermode InteractiveServer
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>TaskItem</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="TaskItem" OnValidSubmit="AddTaskItem" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="title" class="form-label">Title:</label> 
+                <InputText id="title" @bind-Value="TaskItem.Title" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => TaskItem.Title" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label> 
+                <InputText id="description" @bind-Value="TaskItem.Description" class="form-control" /> 
+                <ValidationMessage For="() => TaskItem.Description" class="text-danger" /> 
+            </div>
+            <div class="mb-3">
+                <label for="reporterid" class="form-label">Reporter:</label>
+                <InputSelect id="reporterid" @bind-Value="TaskItem.ReporterId" class="form-control">
+                    <option value="">-- Select Reporter --</option>
+                    @foreach (var user in Users)
+                    {
+                        <option value="@user.Id">@($"{user.FirstName} {user.Surname}")</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => TaskItem.ReporterId" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="assigneeid" class="form-label">Assignee:</label>
+                <InputSelect id="assigneeid" @bind-Value="TaskItem.AssigneeId" class="form-control">
+                    <option value="">-- Select Assignee --</option>
+                    @foreach (var user in Users)
+                    {
+                        <option value="@user.Id">@($"{user.FirstName} {user.Surname}")</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => TaskItem.AssigneeId" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="companyid" class="form-label">Company:</label>
+                <InputSelect id="companyid" @bind-Value="TaskItem.CompanyId" class="form-control">
+                    <option value="">-- Select Company --</option>
+                    @foreach (var company in Companies)
+                    {
+                        <option value="@company.Id">@company.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => TaskItem.CompanyId" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="priority" class="form-label">Priority:</label> 
+                <InputNumber id="priority" @bind-Value="TaskItem.Priority" class="form-control" /> 
+                <ValidationMessage For="() => TaskItem.Priority" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="status" class="form-label">Status:</label> 
+                <InputSelect id="status" @bind-Value="TaskItem.Status" class="form-control">
+                    <option value="Open">Open</option>
+                    <option value="Taken">Taken</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Closed">Closed</option>
+                </InputSelect>
+                <ValidationMessage For="() => TaskItem.Status" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="reporteddate" class="form-label">Reported Date:</label> 
+                <InputDate id="reporteddate"
+                           @bind-Value="TaskItem.ReportedDate"
+                           class="form-control"
+                           min="2020-01-01" />
+                <ValidationMessage For="() => TaskItem.ReportedDate" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="duedate" class="form-label">Due Date:</label> 
+                <InputDate id="duedate"
+                           @bind-Value="TaskItem.DueDate"
+                           class="form-control"
+                           min="@TaskItem.ReportedDate.ToString("yyyy-MM-dd")" />
+                <ValidationMessage For="() => TaskItem.DueDate" class="text-danger" /> 
+            </div>
+
+            <h4>Checklist</h4>
+            @foreach (var item in TaskItem.ChecklistItems)
+            {
+                <div class="d-flex align-items-center mb-2">
+                    <InputCheckbox @bind-Value="item.IsCompleted" class="me-2" />
+                    <InputText @bind-Value="item.Description" class="form-control me-2" style="width: 100%;" />
+                    <InputDate id="duedate"
+                               @bind-Value="item.DueDate"
+                               class="form-control"
+                               min="@TaskItem.ReportedDate.ToString("yyyy-MM-dd")" />
+                    <button type="button" class="btn btn-danger btn-sm" @onclick="@(() => RemoveChecklistItem(item))">Remove</button>
+                </div>
+            }
+
+            <button type="button" class="btn btn-secondary" @onclick="AddChecklistItem">Add Checklist Item</button>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/taskitems">Back to List</a>
+</div>
+
+@code {
+    private List<AppUser> Users = new();
+    private List<Company> Companies = new();
+
+    [SupplyParameterFromForm]
+    private TaskItem TaskItem { get; set; } = new()
+        {
+            ReportedDate = DateTime.Today,
+            DueDate = DateTime.Today
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Users = await context.Users.ToListAsync();
+        Companies = await context.Companies.ToListAsync();
+    }
+
+    private async Task AddTaskItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        if (TaskItem.Status == "Resolved")
+            TaskItem.ResolvedDate = DateTime.Now;
+
+        Logger.LogInformation($"\n{TaskItem.ChecklistItems.Count}\n");
+        context.Tasks.Add(TaskItem);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/taskitems");
+    }
+
+    private void AddChecklistItem()
+    {
+        TaskItem.ChecklistItems.Add(new ChecklistItem());
+    }
+
+    private void RemoveChecklistItem(ChecklistItem item)
+    {
+        TaskItem.ChecklistItems.Remove(item);
+    }
+}

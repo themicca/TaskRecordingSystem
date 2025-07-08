@@ -1,0 +1,58 @@
+﻿@page "/companies/create"
+@using Microsoft.EntityFrameworkCore
+@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>Company</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Company" OnValidSubmit="AddCompany" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label> 
+                <InputText id="name" @bind-Value="Company.Name" class="form-control" /> 
+                <ValidationMessage For="() => Company.Name" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label> 
+                <InputText id="description" @bind-Value="Company.Description" class="form-control" /> 
+                <ValidationMessage For="() => Company.Description" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/companies">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Company Company { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        /*Company = new()
+        {
+            Name = "novy",
+            Description = "nocy"
+        };*/
+    }
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddCompany()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Companies.Add(Company);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/companies");
+    }
+}

@@ -1,0 +1,73 @@
+﻿@page "/taskitems/details"
+@using Microsoft.EntityFrameworkCore
+@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>TaskItem</h2>
+    <hr />
+    @if (taskItem is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Title</dt>
+            <dd class="col-sm-10">@taskItem.Title</dd>
+            <dt class="col-sm-2">Description</dt>
+            <dd class="col-sm-10">@taskItem.Description</dd>
+            <dt class="col-sm-2">Reporter</dt>
+            <dd class="col-sm-10">@($"{reporter?.FirstName} {reporter?.Surname}")</dd>
+            <dt class="col-sm-2">Assignee</dt>
+            <dd class="col-sm-10">@($"{assignee?.FirstName} {assignee?.Surname}")</dd>
+            <dt class="col-sm-2">Company</dt>
+            <dd class="col-sm-10">@company?.Name</dd>
+            <dt class="col-sm-2">Priority</dt>
+            <dd class="col-sm-10">@taskItem.Priority</dd>
+            <dt class="col-sm-2">Status</dt>
+            <dd class="col-sm-10">@taskItem.Status</dd>
+            <dt class="col-sm-2">Reported Date</dt>
+            <dd class="col-sm-10">@taskItem.ReportedDate</dd>
+            <dt class="col-sm-2">Due Date</dt>
+            <dd class="col-sm-10">@taskItem.DueDate</dd>
+            <dt class="col-sm-2">Resolved Date</dt>
+            <dd class="col-sm-10">@taskItem.ResolvedDate</dd>
+        </dl>
+        <div>
+            <a href="@($"/taskitems/edit?id={taskItem.Id}")">Edit</a> |
+            <a href="@($"/taskitems")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private TaskItem? taskItem;
+    private Company? company;
+    private AppUser? reporter;
+    private AppUser? assignee;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        taskItem = await context.Tasks.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (taskItem is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+        else
+        {
+            company = await context.Companies.FirstOrDefaultAsync(c => c.Id == taskItem.CompanyId);
+            reporter = await context.Users.FirstOrDefaultAsync(c => c.Id == taskItem.ReporterId);
+            assignee = await context.Users.FirstOrDefaultAsync(c => c.Id == taskItem.AssigneeId);
+        }
+    }
+}

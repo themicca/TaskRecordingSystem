@@ -1,0 +1,232 @@
+﻿@page "/taskitems/edit"
+@using Microsoft.EntityFrameworkCore
+@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject ILogger<TaskItem> Logger
+@rendermode InteractiveServer
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>TaskItem</h2>
+<hr />
+@if (TaskItem is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="TaskItem" OnValidSubmit="UpdateTaskItem" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="TaskItem.Id" value="@TaskItem.Id" />
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title:</label>
+                    <InputText id="title" @bind-Value="TaskItem.Title" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => TaskItem.Title" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description:</label>
+                    <InputText id="description" @bind-Value="TaskItem.Description" class="form-control" />
+                    <ValidationMessage For="() => TaskItem.Description" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="reporterid" class="form-label">Reporter:</label>
+                    <InputSelect id="reporterid" @bind-Value="TaskItem.ReporterId" class="form-control">
+                        <option value="@reporter?.Id">@($"{reporter?.FirstName} {reporter?.Surname}")</option>
+                        @foreach (var user in Reporters)
+                        {
+                            <option value="@user.Id">@($"{user.FirstName} {user.Surname}")</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => TaskItem.ReporterId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="assigneeid" class="form-label">Assignee:</label>
+                    <InputSelect id="assigneeid" @bind-Value="TaskItem.AssigneeId" class="form-control">
+                        <option value="@assignee?.Id">@($"{assignee?.FirstName} {assignee?.Surname}")</option>
+                        @foreach (var user in Assignees)
+                        {
+                            <option value="@user.Id">@($"{user.FirstName} {user.Surname}")</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => TaskItem.AssigneeId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="companyid" class="form-label">Company:</label>
+                    <InputSelect id="companyid" @bind-Value="TaskItem.CompanyId" class="form-control">
+                        <option value="@company?.Id">@company?.Name</option>
+                        @foreach (var company in Companies)
+                        {
+                            <option value="@company.Id">@company.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => TaskItem.CompanyId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="priority" class="form-label">Priority:</label>
+                    <InputNumber id="priority" @bind-Value="TaskItem.Priority" class="form-control" />
+                    <ValidationMessage For="() => TaskItem.Priority" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status:</label>
+                    <InputSelect id="status" @bind-Value="TaskItem.Status" class="form-control">
+                        <option value="Open">Open</option>
+                        <option value="Taken">Taken</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => TaskItem.Status" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="reporteddate" class="form-label">Reported Date:</label>
+                    <InputDate id="reporteddate"
+                               @bind-Value="TaskItem.ReportedDate"
+                               class="form-control"
+                               min="2020-01-01" />
+                    <ValidationMessage For="() => TaskItem.ReportedDate" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="duedate" class="form-label">Due Date:</label>
+                    <InputDate id="duedate"
+                               @bind-Value="TaskItem.DueDate"
+                               class="form-control"
+                               min="@TaskItem.ReportedDate.ToString("yyyy-MM-dd")" />
+                    <ValidationMessage For="() => TaskItem.DueDate" class="text-danger" />
+                </div>
+                <input type="hidden" name="statusOriginal" value="@statusOriginal" />
+
+                <h4>Checklist</h4>
+                @foreach (var item in TaskItem.ChecklistItems)
+                {
+                    <div class="d-flex align-items-center mb-2">
+                        <InputCheckbox @bind-Value="item.IsCompleted" class="me-2" />
+                        <InputText @bind-Value="item.Description" class="form-control me-2" style="width: 100%;" />
+                        <InputDate id="duedate"
+                                   @bind-Value="item.DueDate"
+                                   class="form-control"
+                                   min="@TaskItem.ReportedDate.ToString("yyyy-MM-dd")" />
+                        <button type="button" class="btn btn-danger btn-sm" @onclick="@(() => RemoveChecklistItem(item))">Remove</button>
+                    </div>
+                }
+
+                <button type="button" class="btn btn-secondary" @onclick="AddChecklistItem">Add Checklist Item</button>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/taskitems">Back to List</a>
+</div>
+
+@code {
+    private List<AppUser> Reporters = new();
+    private List<AppUser> Assignees = new();
+    private List<Company> Companies = new();
+
+    private Company? company;
+    private AppUser? reporter;
+    private AppUser? assignee;
+
+    [SupplyParameterFromForm]
+    private string? statusOriginal { get; set; }
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private TaskItem? TaskItem { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        TaskItem ??= await context.Tasks.Include(t => t.ChecklistItems).FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (TaskItem is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+        else
+        {
+            Logger.LogInformation($"\n{TaskItem.ChecklistItems.Count}\n");
+            company = await context.Companies.FirstOrDefaultAsync(c => c.Id == TaskItem.CompanyId);
+            reporter = await context.Users.FirstOrDefaultAsync(c => c.Id == TaskItem.ReporterId);
+            assignee = await context.Users.FirstOrDefaultAsync(c => c.Id == TaskItem.AssigneeId);
+
+            Reporters = await context.Users.Where(c => c.Id != reporter!.Id).ToListAsync();
+            Assignees = await context.Users.Where(c => c.Id != assignee!.Id).ToListAsync();
+            Companies = await context.Companies.Where(c => c.Id != company!.Id).ToListAsync();
+
+            if (string.IsNullOrEmpty(statusOriginal))
+                statusOriginal = TaskItem.Status;
+        }
+    }
+
+    private async Task UpdateTaskItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        var existingTask = await context.Tasks
+       .Include(t => t.ChecklistItems)
+       .FirstOrDefaultAsync(t => t.Id == TaskItem!.Id);
+
+        if (existingTask is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+            return;
+        }
+
+        context.Entry(existingTask).CurrentValues.SetValues(TaskItem!);
+
+        foreach (var existingItem in existingTask.ChecklistItems.ToList())
+        {
+            if (!TaskItem!.ChecklistItems.Any(c => c.Id == existingItem.Id))
+                context.ChecklistItems.Remove(existingItem);
+        }
+
+        foreach (var item in TaskItem!.ChecklistItems)
+        {
+            var existing = existingTask.ChecklistItems.FirstOrDefault(c => c.Id == item.Id);
+            if (existing is not null)
+            {
+                context.Entry(existing).CurrentValues.SetValues(item);
+            }
+            else
+            {
+                existingTask.ChecklistItems.Add(item);
+            }
+        }
+
+        if (TaskItem.Status == "Resolved" && TaskItem.Status != statusOriginal)
+            existingTask.ResolvedDate = DateTime.Now;
+
+        await context.SaveChangesAsync();
+
+        NavigationManager.NavigateTo("/taskitems");
+    }
+
+    private bool TaskItemExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Tasks.Any(e => e.Id == id);
+    }
+
+    private void AddChecklistItem()
+    {
+        TaskItem!.ChecklistItems.Add(new ChecklistItem());
+    }
+
+    private void RemoveChecklistItem(ChecklistItem item)
+    {
+        TaskItem!.ChecklistItems.Remove(item);
+    }
+}

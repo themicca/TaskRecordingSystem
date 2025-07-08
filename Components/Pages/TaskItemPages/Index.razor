@@ -1,0 +1,138 @@
+﻿@page "/taskitems"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using TaskRecordingSystem.Models
+@using TaskRecordingSystem
+@implements IAsyncDisposable
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILogger<TaskItem> Logger
+@rendermode InteractiveServer
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="taskitems/create">Create New</a>
+</p>
+
+<h3>Filtr</h3>
+<div class="mb-3">
+    <label>Filter type:</label>
+    <select class="form-select" @onchange="OnFilterTypeChanged">
+        <option value="">-- No filter --</option>
+        <option value="reporter">By reporters</option>
+        <option value="assignee">By assignees</option>
+        <option value="unresolved">Unresolved tasks</option>
+        <option value="overdue">Overdue unresolved tasks</option>
+        <option value="overdueStep">Unresolved tasks with overdue steps</option>
+    </select>
+</div>
+
+@if (selectedFilterType == "reporter" || selectedFilterType == "assignee")
+{
+    <div class="mb-3">
+        <label>Select user:</label>
+        <select class="form-select" @onchange="OnUserChanged">
+            <option value="">-- Select user --</option>
+            @foreach (var user in Users)
+            {
+                <option value="@user.Id">@($"{user.FirstName} {user.Surname}")</option>
+            }
+        </select>
+    </div>
+}
+
+<QuickGrid Class="table" Items="filteredTasks.AsQueryable()" TGridItem="TaskItem">
+    <PropertyColumn Property="taskitem => taskitem.Title" />
+    <PropertyColumn Property="taskitem => taskitem.Description" />
+    <TemplateColumn Title="Reporter" Context="taskitem">
+        @(taskitem.Reporter != null ? $"{taskitem.Reporter.FirstName} {taskitem.Reporter.Surname}" : "")
+    </TemplateColumn>
+    <TemplateColumn Title="Assignee" Context="taskitem">
+        @((taskitem.Assignee != null) ? $"{taskitem.Assignee.FirstName} {taskitem.Assignee.Surname}" : "")
+    </TemplateColumn>
+
+    <TemplateColumn Title="Company" Context="taskitem">
+        @((taskitem.Company != null) ? $"{taskitem.Company.Name}" : "")
+    </TemplateColumn>
+    <PropertyColumn Property="taskitem => taskitem.CompanyId" />
+    <PropertyColumn Property="taskitem => taskitem.Priority" />
+    <PropertyColumn Property="taskitem => taskitem.Status" />
+    <PropertyColumn Property="taskitem => taskitem.ReportedDate" />
+    <PropertyColumn Property="taskitem => taskitem.DueDate" />
+    <PropertyColumn Property="taskitem => taskitem.ResolvedDate" />
+
+    <TemplateColumn Context="taskitem">
+        <a href="@($"taskitems/edit?id={taskitem.Id}")">Edit</a> |
+        <a href="@($"taskitems/details?id={taskitem.Id}")">Details</a> |
+        <a href="@($"taskitems/delete?id={taskitem.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private AppDbContext context = default!;
+    private List<TaskItem> filteredTasks = new();
+    private List<AppUser> Users = new();
+
+    private string selectedFilterType = "";
+    private int? selectedUserId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+        Users = await context.Users.ToListAsync();
+        await LoadTasks();
+    }
+
+    private async Task OnFilterTypeChanged(ChangeEventArgs e)
+    {
+        selectedFilterType = e.Value?.ToString() ?? "";
+        await LoadTasks();
+    }
+
+    private async Task OnUserChanged(ChangeEventArgs e)
+    {
+        var valueStr = e.Value?.ToString();
+        selectedUserId = int.TryParse(valueStr, out var id) ? id : null; ;
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        var query = context.Tasks
+            .Include(t => t.Reporter)
+            .Include(t => t.Assignee)
+            .Include(t => t.Company)
+            .Include(t => t.ChecklistItems)
+            .AsQueryable();
+
+        if (selectedFilterType == "reporter" && selectedUserId.HasValue)
+        {
+            query = query.Where(t => t.ReporterId == selectedUserId);
+        }
+        else if (selectedFilterType == "assignee" && selectedUserId.HasValue)
+        {
+            query = query.Where(t => t.AssigneeId == selectedUserId);
+        }
+        else if (selectedFilterType == "overdue")
+        {
+            query = query.Where(t => t.DueDate < DateTime.Now && t.Status != "Resolved" && t.Status != "Closed");
+        }
+        else if (selectedFilterType == "unresolved")
+        {
+            query = query.Where(t => t.Status != "Resolved" && t.Status != "Closed");
+        }
+        else if (selectedFilterType == "overdueStep")
+        {
+            query = query.Where(t =>
+                t.ChecklistItems.Any(c =>
+                    !c.IsCompleted &&
+                    c.DueDate < DateTime.Now));
+        }
+
+        filteredTasks = await query.ToListAsync();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

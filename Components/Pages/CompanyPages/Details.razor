@@ -1,0 +1,48 @@
+﻿@page "/companies/details"
+@using Microsoft.EntityFrameworkCore
+@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>Company</h2>
+    <hr />
+    @if (company is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@company.Name</dd>
+            <dt class="col-sm-2">Description</dt>
+            <dd class="col-sm-10">@company.Description</dd>
+        </dl>
+        <div>
+            <a href="@($"/companies/edit?id={company.Id}")">Edit</a> |
+            <a href="@($"/companies")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private Company? company;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        company = await context.Companies.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (company is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}
