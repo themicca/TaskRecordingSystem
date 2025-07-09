@@ -1,0 +1,69 @@
+﻿@using TaskRecordingSystem.Models
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationService AuthService
+
+<div class="mt-4">
+    <h4>Chat</h4>
+    <div style="max-height: 300px; overflow-y: auto;">
+        @if (Messages.Any())
+        {
+            @foreach (var msg in Messages.OrderBy(m => m.SentAt))
+            {
+                <div class="mb-2">
+                    <strong>@msg.Author.FirstName @msg.Author.Surname:</strong>
+                    <span class="text-muted">(@msg.SentAt.ToString("g"))</span>
+                    <div>@msg.MessageText</div>
+                </div>
+            }
+        }
+        else
+        {
+            <div>No messages yet.</div>
+        }
+    </div>
+
+    <EditForm Model="NewMessage" OnValidSubmit="SendMessage">
+        <InputTextArea @bind-Value="NewMessage.MessageText" class="form-control mb-2" rows="3" />
+        <button class="btn btn-primary" type="submit">Send</button>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public int TaskItemId { get; set; }
+
+    private List<ChatMessage> Messages = new();
+    private ChatMessage NewMessage = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMessages();
+    }
+
+    private async Task LoadMessages()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Messages = await context.ChatMessages
+            .Include(m => m.Author)
+            .Where(m => m.TaskItemId == TaskItemId)
+            .ToListAsync();
+
+        NewMessage = new ChatMessage
+            {
+                TaskItemId = TaskItemId,
+                AuthorId = AuthService.CurrentUser!.Id,
+                SentAt = DateTime.Now
+            };
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(NewMessage.MessageText))
+            return;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        context.ChatMessages.Add(NewMessage);
+        await context.SaveChangesAsync();
+
+        await LoadMessages();
+    }
+}

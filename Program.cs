@@ -1,6 +1,7 @@
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 using TaskRecordingSystem.Components;
-using TaskRecordingSystem.Models;
+using TaskRecordingSystem.Services;
 
 namespace TaskRecordingSystem
 {
@@ -20,6 +21,9 @@ namespace TaskRecordingSystem
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+
+            builder.Services.AddScoped<AuthenticationService>();
+            builder.Services.AddScoped<ProtectedLocalStorage>();
 
             var app = builder.Build();
 

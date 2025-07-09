@@ -1,6 +1,38 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+﻿@using TaskRecordingSystem.Components.Pages.Authentication
+@inject AuthenticationService AuthService
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+@if (!initialized)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            @if (AuthService.IsLoggedIn
+           || routeData.PageType == typeof(Pages.Authentication.Login)
+           || routeData.PageType == typeof(Pages.Authentication.Register))
+            {
+                <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            }
+            else
+            {
+                <RedirectToLogin />
+            }
+        </Found>
+    </Router>
+}
+
+@code {
+    private bool initialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.TryAutoLoginAsync(DbFactory);
+        initialized = true;
+    }
+}

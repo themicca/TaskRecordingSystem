@@ -1,0 +1,12 @@
+﻿@inject AuthenticationService AuthService
+@inject NavigationManager NavigationManager
+
+<button @onclick="LogoutUser">Logout</button>
+
+@code {
+    private void LogoutUser()
+    {
+        AuthService.Logout();
+        NavigationManager.NavigateTo("/login");
+    }
+}

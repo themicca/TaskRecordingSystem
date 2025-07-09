@@ -4,6 +4,7 @@
 @using TaskRecordingSystem.Models
 @implements IAsyncDisposable
 @inject IDbContextFactory<AppDbContext> DbFactory
+@rendermode InteractiveServer
 
 <PageTitle>Index</PageTitle>
 
@@ -13,11 +14,13 @@
     <a href="appusers/create">Create New</a>
 </p>
 
-<QuickGrid Class="table" Items="context.Users">
+<QuickGrid Class="table" Items="Users.AsQueryable()" TGridItem="AppUser">
     <PropertyColumn Property="appuser => appuser.FirstName" />
     <PropertyColumn Property="appuser => appuser.Surname" />
     <PropertyColumn Property="appuser => appuser.Email" />
-    <PropertyColumn Property="appuser => appuser.CompanyId" />
+    <TemplateColumn Title="Company" Context="appuser">
+        @((appuser.Company != null) ? $"{appuser.Company.Name}" : "")
+    </TemplateColumn>
 
     <TemplateColumn Context="appuser">
         <a href="@($"appusers/edit?id={appuser.Id}")">Edit</a> |
@@ -29,9 +32,12 @@
 @code {
     private AppDbContext context = default!;
 
-    protected override void OnInitialized()
+    private List<AppUser> Users = new();
+
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        Users = await context.Users.Include(t => t.Company).ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

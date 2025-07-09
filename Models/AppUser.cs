@@ -5,7 +5,8 @@
         public int Id { get; set; }
         public string FirstName { get; set; } = null!;
         public string Surname { get; set; } = null!;
-        public string? Email { get; set; }
+        public string Email { get; set; } = null!;
+        public string PasswordHash { get; set; } = string.Empty;
 
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;

@@ -1,0 +1,70 @@
+﻿@page "/login"
+@using System.Security.Cryptography
+@using System.Text
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationService AuthService
+@inject NavigationManager NavigationManager
+
+<h3>Login</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+<EditForm Model="loginUser" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email:</label>
+        <InputText id="email" @bind-Value="loginUser.Email" class="form-control" />
+        <ValidationMessage For="() => loginUser.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password:</label>
+        <InputText id="password" @bind-Value="loginUser.Password" type="password" class="form-control" />
+        <ValidationMessage For="() => loginUser.Password" />
+    </div>
+
+    <div class="form-check mb-3">
+        <InputCheckbox @bind-Value="loginUser.RememberMe" class="form-check-input" id="rememberMe" />
+        <label class="form-check-label" for="rememberMe">Remember me</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+<p class="mt-3">Don't have an account? <a href="/register">Register here</a>.</p>
+
+@code {
+    private LoginUser loginUser = new();
+    private string? ErrorMessage;
+
+    private async Task HandleLogin()
+    {
+        ErrorMessage = null;
+
+        using var context = DbFactory.CreateDbContext();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Email == loginUser.Email);
+
+        if (user == null || user.PasswordHash != HashPassword(loginUser.Password))
+        {
+            ErrorMessage = "Invalid email or password.";
+            return;
+        }
+
+        await AuthService.SetUserAsync(user, loginUser.RememberMe);
+        NavigationManager.NavigateTo("/");
+    }
+
+    private string HashPassword(string password)
+    {
+        using var sha = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(password);
+        var hash = sha.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
+    }
+}
