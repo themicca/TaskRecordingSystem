@@ -4,9 +4,9 @@
 <button @onclick="LogoutUser">Logout</button>
 
 @code {
-    private void LogoutUser()
+    private async void LogoutUser()
     {
-        AuthService.Logout();
+        await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("/login");
     }
 }

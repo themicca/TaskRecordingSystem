@@ -3,65 +3,22 @@
 @using TaskRecordingSystem.Models
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@rendermode InteractiveServer
 
 <PageTitle>Create</PageTitle>
 
 <h1>Create</h1>
 
-<h2>AppUser</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm method="post" Model="AppUser" OnValidSubmit="AddAppUser" FormName="create" Enhance>
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="firstname" class="form-label">FirstName:</label> 
-                <InputText id="firstname" @bind-Value="AppUser.FirstName" class="form-control" /> 
-                <ValidationMessage For="() => AppUser.FirstName" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="surname" class="form-label">Surname:</label> 
-                <InputText id="surname" @bind-Value="AppUser.Surname" class="form-control" /> 
-                <ValidationMessage For="() => AppUser.Surname" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="email" class="form-label">Email:</label> 
-                <InputText id="email" @bind-Value="AppUser.Email" class="form-control" /> 
-                <ValidationMessage For="() => AppUser.Email" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="companyid" class="form-label">CompanyId:</label> 
-                <InputSelect id="companyid" @bind-Value="AppUser.CompanyId" class="form-control">
-                    <option value="">-- Select Company --</option>
-                    @foreach (var company in Companies)
-                    {
-                        <option value="@company.Id">@company.Name</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="() => AppUser.CompanyId" class="text-danger" /> 
-            </div>        
-            <button type="submit" class="btn btn-primary">Create</button>
-        </EditForm>
-    </div>
-</div>
+<TaskRecordingSystem.Components.Pages.Authentication.CreateUserForm SubmitText="Create" OnUserCreated="@HandleUserCreated" />
 
 <div>
     <a href="/appusers">Back to List</a>
 </div>
 
 @code {
-    private List<Company> Companies = new();
-
-    [SupplyParameterFromForm]
-    private AppUser AppUser { get; set; } = new();
-
-    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
-    private async Task AddAppUser()
+    private void HandleUserCreated()
     {
-        using var context = DbFactory.CreateDbContext();
-        context.Users.Add(AppUser);
-        await context.SaveChangesAsync();
+
         NavigationManager.NavigateTo("/appusers");
     }
 }

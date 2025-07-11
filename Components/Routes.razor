@@ -30,9 +30,13 @@ else
 @code {
     private bool initialized = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await AuthService.TryAutoLoginAsync(DbFactory);
-        initialized = true;
+        if (firstRender)
+        {
+            await AuthService.TryAutoLoginAsync(DbFactory);
+            initialized = true;
+            StateHasChanged();
+        }
     }
 }

@@ -23,7 +23,7 @@ namespace TaskRecordingSystem.Models
         public Company Company { get; set; } = null!;
 
         public int Priority { get; set; } = 1;
-        public string Status { get; set; } = "Open";
+        public TaskItemStatus Status { get; set; } = TaskItemStatus.Open;
 
         public DateTime ReportedDate { get; set; }
         public DateTime? DueDate { get; set; }
@@ -49,5 +49,13 @@ namespace TaskRecordingSystem.Models
                     new[] { nameof(DueDate) });
             }
         }
+    }
+
+    public enum TaskItemStatus
+    {
+        Open,
+        Taken,
+        Resolved,
+        Closed
     }
 }

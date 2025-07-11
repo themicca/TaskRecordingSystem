@@ -75,10 +75,10 @@ else
                 <div class="mb-3">
                     <label for="status" class="form-label">Status:</label>
                     <InputSelect id="status" @bind-Value="TaskItem.Status" class="form-control">
-                        <option value="Open">Open</option>
-                        <option value="Taken">Taken</option>
-                        <option value="Resolved">Resolved</option>
-                        <option value="Closed">Closed</option>
+                        @foreach (var status in Enum.GetValues(typeof(TaskItemStatus)))
+                        {
+                            <option value="@status">@status.ToString()</option>
+                        }
                     </InputSelect>
                     <ValidationMessage For="() => TaskItem.Status" class="text-danger" />
                 </div>
@@ -138,7 +138,7 @@ else
     private AppUser? assignee;
 
     [SupplyParameterFromForm]
-    private string? statusOriginal { get; set; }
+    private TaskItemStatus? statusOriginal { get; set; }
 
     [SupplyParameterFromQuery]
     private int Id { get; set; }
@@ -166,7 +166,7 @@ else
             Assignees = await context.Users.Where(c => c.Id != assignee!.Id).ToListAsync();
             Companies = await context.Companies.Where(c => c.Id != company!.Id).ToListAsync();
 
-            if (string.IsNullOrEmpty(statusOriginal))
+            if (statusOriginal == null)
                 statusOriginal = TaskItem.Status;
         }
     }
@@ -206,7 +206,7 @@ else
             }
         }
 
-        if (TaskItem.Status == "Resolved" && TaskItem.Status != statusOriginal)
+        if (TaskItem.Status == TaskItemStatus.Resolved && TaskItem.Status != statusOriginal)
             existingTask.ResolvedDate = DateTime.Now;
 
         await context.SaveChangesAsync();

@@ -1,0 +1,111 @@
+﻿@inject HttpClient Http
+@inject ILogger<Attachment> Logger
+
+<div class="col-md-4">
+    <h4>Attachments</h4>
+    @if (TaskItem!.Attachments?.Any() == true)
+    {
+        <ul>
+            @foreach (var attachment in TaskItem.Attachments)
+            {
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="@($"/Attachments/{attachment.FileName}")" target="_blank">@attachment.FileName</a>
+                    <button class="btn btn-danger btn-sm ms-2" @onclick="() => ConfirmDelete(attachment.Id)">🗑 Smazat</button>
+                </div>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>No attachments available.</p>
+    }
+
+    <h4>Upload Attachment</h4>
+    <InputFile OnChange="HandleFileSelected" />
+    <button @onclick="UploadAttachment" class="btn btn-primary">Upload</button>
+</div>
+
+@if (ShowConfirmDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Potvrzení smazání</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Opravdu chcete tuto přílohu smazat?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Zrušit</button>
+                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Smazat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (UploadedFileName != null)
+{
+    <p class="text-success">Uploaded: @UploadedFileName</p>
+}
+
+@code {
+    IBrowserFile? selectedFile;
+    string? UploadedFileName;
+    int? AttachmentIdToDelete;
+    bool ShowConfirmDialog = false;
+
+    [Parameter] public TaskItem? TaskItem { get; set; }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadAttachment()
+    {
+        if (selectedFile == null)
+            return;
+
+        var content = new MultipartFormDataContent();
+        var stream = selectedFile.OpenReadStream();
+        content.Add(new StreamContent(stream), "file", selectedFile.Name);
+
+        var response = await Http.PostAsync($"/api/taskitem/{TaskItem!.Id}/upload", content);
+        if (response.IsSuccessStatusCode)
+        {
+            UploadedFileName = selectedFile.Name;
+        }
+    }
+
+    private void ConfirmDelete(int id)
+    {
+        AttachmentIdToDelete = id;
+        ShowConfirmDialog = true;
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        if (AttachmentIdToDelete is not null)
+        {
+            var response = await Http.DeleteAsync($"/api/taskitem/attachments/{AttachmentIdToDelete}");
+            if (response.IsSuccessStatusCode)
+            {
+                var toRemove = TaskItem!.Attachments.FirstOrDefault(a => a.Id == AttachmentIdToDelete);
+                if (toRemove is not null)
+                    TaskItem.Attachments.Remove(toRemove);
+            }
+        }
+
+        AttachmentIdToDelete = null;
+        ShowConfirmDialog = false;
+    }
+
+    private void CancelDelete()
+    {
+        AttachmentIdToDelete = null;
+        ShowConfirmDialog = false;
+    }
+}

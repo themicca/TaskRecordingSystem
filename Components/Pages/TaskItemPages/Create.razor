@@ -68,10 +68,10 @@
             <div class="mb-3">
                 <label for="status" class="form-label">Status:</label> 
                 <InputSelect id="status" @bind-Value="TaskItem.Status" class="form-control">
-                    <option value="Open">Open</option>
-                    <option value="Taken">Taken</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
+                    @foreach (var status in Enum.GetValues(typeof(TaskItemStatus)))
+                    {
+                        <option value="@status">@status.ToString()</option>
+                    }
                 </InputSelect>
                 <ValidationMessage For="() => TaskItem.Status" class="text-danger" /> 
             </div>        
@@ -140,7 +140,7 @@
     {
         using var context = DbFactory.CreateDbContext();
 
-        if (TaskItem.Status == "Resolved")
+        if (TaskItem.Status == TaskItemStatus.Resolved)
             TaskItem.ResolvedDate = DateTime.Now;
 
         Logger.LogInformation($"\n{TaskItem.ChecklistItems.Count}\n");

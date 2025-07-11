@@ -1,0 +1,131 @@
+﻿@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+
+<EditForm Model="registerUser" OnValidSubmit="HandleCreateUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="firstname" class="form-label">First Name:</label>
+        <InputText id="firstname" @bind-Value="registerUser.FirstName" class="form-control" />
+        <ValidationMessage For="() => registerUser.FirstName" />
+    </div>
+
+    <div class="mb-3">
+        <label for="surname" class="form-label">Surname:</label>
+        <InputText id="surname" @bind-Value="registerUser.Surname" class="form-control" />
+        <ValidationMessage For="() => registerUser.Surname" />
+    </div>
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email:</label>
+        <InputText id="email" @bind-Value="registerUser.Email" class="form-control" />
+        <ValidationMessage For="() => registerUser.Email" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(registerUser.Password))
+    {
+        <ul class="list-unstyled mb-3">
+            <li class="@GetCriteriaClass(HasMinLength)">✔️ At least 8 characters</li>
+            <li class="@GetCriteriaClass(HasUppercase)">✔️ At least one uppercase letter</li>
+            <li class="@GetCriteriaClass(HasLowercase)">✔️ At least one lowercase letter</li>
+            <li class="@GetCriteriaClass(HasDigit)">✔️ At least one digit</li>
+            <li class="@GetCriteriaClass(HasSpecialChar)">✔️ At least one special character</li>
+        </ul>
+    }
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password:</label>
+        <InputText id="password" @bind-Value="registerUser.Password" type="password" class="form-control" />
+        <ValidationMessage For="() => registerUser.Password" />
+    </div>
+
+    <div class="mb-3">
+        <label for="companyid" class="form-label">Company:</label>
+        <InputSelect id="companyid" @bind-Value="registerUser.CompanyId" class="form-control">
+            <option value="0">-- Select Company --</option>
+            @foreach (var company in Companies)
+            {
+                <option value="@company.Id">@company.Name</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="() => registerUser.CompanyId" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">@SubmitText</button>
+</EditForm>
+
+@code {
+    private RegisterUser registerUser = new();
+    private List<Company> Companies = new();
+    private string? ErrorMessage;
+
+    [Parameter] public string SubmitText { get; set; } = "Register";
+    [Parameter] public EventCallback<AppUser> OnUserCreated { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Companies = await context.Companies.ToListAsync();
+    }
+
+    private async Task HandleCreateUser()
+    {
+        ErrorMessage = null;
+
+        if (registerUser.CompanyId == 0)
+        {
+            ErrorMessage = "Please select a valid company.";
+            return;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+        var existing = await context.Users.FirstOrDefaultAsync(u => u.Email == registerUser.Email);
+        if (existing != null)
+        {
+            ErrorMessage = "Email is already registered.";
+            return;
+        }
+
+        var hashedPassword = HashPassword(registerUser.Password);
+
+        var user = new AppUser
+            {
+                FirstName = registerUser.FirstName,
+                Surname = registerUser.Surname,
+                Email = registerUser.Email,
+                PasswordHash = hashedPassword,
+                CompanyId = registerUser.CompanyId
+            };
+
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        await OnUserCreated.InvokeAsync(user);
+    }
+
+    private string HashPassword(string password)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(password);
+        var hash = sha.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
+    }
+
+    private bool HasMinLength => registerUser.Password.Length >= 8;
+    private bool HasUppercase => registerUser.Password.Any(char.IsUpper);
+    private bool HasLowercase => registerUser.Password.Any(char.IsLower);
+    private bool HasDigit => registerUser.Password.Any(char.IsDigit);
+    private bool HasSpecialChar => registerUser.Password.Any(c => !char.IsLetterOrDigit(c));
+
+    private string GetCriteriaClass(bool condition)
+    {
+        return condition ? "text-success" : "text-danger";
+    }
+}

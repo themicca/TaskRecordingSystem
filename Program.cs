@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using TaskRecordingSystem.Components;
 using TaskRecordingSystem.Services;
 
@@ -25,6 +27,14 @@ namespace TaskRecordingSystem
             builder.Services.AddScoped<AuthenticationService>();
             builder.Services.AddScoped<ProtectedLocalStorage>();
 
+            builder.Services.AddScoped(sp =>
+            {
+                var nav = sp.GetRequiredService<NavigationManager>();
+                return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+            });
+
+            builder.Services.AddControllers();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -38,7 +48,13 @@ namespace TaskRecordingSystem
 
             app.UseHttpsRedirection();
 
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(Directory.GetCurrentDirectory(), "Attachments")),
+                RequestPath = "/Attachments"
+            });
+
             app.UseAntiforgery();
 
             app.MapRazorComponents<App>()
@@ -50,6 +66,8 @@ namespace TaskRecordingSystem
                 //DataCleaner.Clear(db);
                 DataSeeder.Seed(db);
             }
+
+            app.MapControllers();
 
             app.Run();
         }

@@ -1,7 +1,56 @@
 ﻿@page "/"
+@inject IDbContextFactory<AppDbContext> DbFactory
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Dashboard</h1>
 
-Welcome to your new app.
+@if (IsLoading)
+{
+    <p>Loading data...</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total tasks</h5>
+                    <p class="card-text fs-3">@TotalTasks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Unresolved</h5>
+                    <p class="card-text fs-3">@UnresolvedTasks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Overdue</h5>
+                    <p class="card-text fs-3">@OverdueTasks</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    int TotalTasks = 0;
+    int UnresolvedTasks = 0;
+    int OverdueTasks = 0;
+    bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        TotalTasks = await db.Tasks.CountAsync();
+        UnresolvedTasks = await db.Tasks.CountAsync(t => t.Status != TaskItemStatus.Resolved);
+        OverdueTasks = await db.Tasks.CountAsync(t => t.DueDate < DateTime.Now && t.Status != TaskItemStatus.Resolved);
+        IsLoading = false;
+    }
+}

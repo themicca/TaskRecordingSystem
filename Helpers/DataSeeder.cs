@@ -7,55 +7,68 @@ public static class DataSeeder
         if (db.Tasks.Any())
             return; // už jsou data, končíme
 
-        // 1. Vytvoření firmy
-        var company1 = new Company
-        {
-            Name = "Malá firma",
-            Description = "Firma pro demo účely"
-        };
+        var random = new Random();
 
-        var company2 = new Company
+        // 1. Vytvoření firem
+        var companies = new List<Company>();
+        for (int i = 1; i <= 5; i++)
         {
-            Name = "Velká firma",
-            Description = "Firma pro demo účely"
-        };
-
-        db.Companies.AddRange(company1, company2);
+            companies.Add(new Company
+            {
+                Name = $"Firma {i}",
+                Description = $"Popis firmy {i}"
+            });
+        }
+        db.Companies.AddRange(companies);
 
         // 2. Vytvoření uživatelů
-        var user1 = new AppUser
+        var users = new List<AppUser>();
+        for (int i = 1; i <= 20; i++)
         {
-            FirstName = "Jan",
-            Surname = "Novák",
-            Email = "jan.novak@example.com",
-            Company = company1
-        };
+            var company = companies[random.Next(companies.Count)];
+            users.Add(new AppUser
+            {
+                FirstName = $"Uživatel{i}",
+                Surname = $"Příjmení{i}",
+                Email = $"user{i}@example.com",
+                Company = company
+            });
+        }
+        db.Users.AddRange(users);
 
-        var user2 = new AppUser
+        // 3. Vytvoření úkolů
+        var statuses = Enum.GetValues(typeof(TaskItemStatus)).Cast<TaskItemStatus>().ToList();
+
+        for (int i = 1; i <= 100; i++)
         {
-            FirstName = "Petra",
-            Surname = "Malá",
-            Email = "petra.mala@example.com",
-            Company = company1
-        };
+            var reporter = users[random.Next(users.Count)];
+            var assignee = users[random.Next(users.Count)];
+            var company = reporter.Company;
 
-        db.Users.AddRange(user1, user2);
+            var status = statuses[random.Next(statuses.Count)];
+            var reportedDate = DateTime.Today.AddDays(-random.Next(30));
+            var dueDate = DateTime.Today.AddDays(random.Next(1, 15));
+            DateTime? resolvedDate = null;
 
-        // 3. Úkol
-        var task = new TaskItem
-        {
-            Title = "Nastavit testovací prostředí",
-            Description = "Připravit základní instalace a databázi",
-            Priority = 2,
-            Status = "Open",
-            ReportedDate = DateTime.Today.AddDays(-1),
-            DueDate = DateTime.Today.AddDays(3),
-            Reporter = user1,
-            Assignee = user2,
-            Company = company1
-        };
+            if (status == TaskItemStatus.Resolved)
+            {
+                resolvedDate = reportedDate.AddDays(random.Next((DateTime.Today - reportedDate).Days + 1));
+            }
 
-        db.Tasks.Add(task);
+            db.Tasks.Add(new TaskItem
+            {
+                Title = $"Úkol {i}",
+                Description = $"Popis úkolu {i}",
+                Priority = random.Next(1, 4),
+                Status = status,
+                ReportedDate = reportedDate,
+                DueDate = dueDate,
+                ResolvedDate = resolvedDate,
+                Reporter = reporter,
+                Assignee = assignee,
+                Company = company
+            });
+        }
 
         db.SaveChanges();
     }

@@ -21,6 +21,7 @@
     <TemplateColumn Title="Company" Context="appuser">
         @((appuser.Company != null) ? $"{appuser.Company.Name}" : "")
     </TemplateColumn>
+    <PropertyColumn Property="appuser => appuser.CompanyId" />
 
     <TemplateColumn Context="appuser">
         <a href="@($"appusers/edit?id={appuser.Id}")">Edit</a> |

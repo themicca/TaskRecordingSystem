@@ -49,10 +49,11 @@
     <TemplateColumn Title="Reporter" Context="taskitem">
         @(taskitem.Reporter != null ? $"{taskitem.Reporter.FirstName} {taskitem.Reporter.Surname}" : "")
     </TemplateColumn>
+    <PropertyColumn Property="taskitem => taskitem.ReporterId" />
     <TemplateColumn Title="Assignee" Context="taskitem">
         @((taskitem.Assignee != null) ? $"{taskitem.Assignee.FirstName} {taskitem.Assignee.Surname}" : "")
     </TemplateColumn>
-
+    <PropertyColumn Property="taskitem => taskitem.AssigneeId" />
     <TemplateColumn Title="Company" Context="taskitem">
         @((taskitem.Company != null) ? $"{taskitem.Company.Name}" : "")
     </TemplateColumn>
@@ -117,11 +118,11 @@
         }
         else if (selectedFilterType == "overdue")
         {
-            query = query.Where(t => t.DueDate < DateTime.Now && t.Status != "Resolved" && t.Status != "Closed");
+            query = query.Where(t => t.DueDate < DateTime.Now && t.Status != TaskItemStatus.Resolved && t.Status != TaskItemStatus.Closed);
         }
         else if (selectedFilterType == "unresolved")
         {
-            query = query.Where(t => t.Status != "Resolved" && t.Status != "Closed");
+            query = query.Where(t => t.Status != TaskItemStatus.Resolved && t.Status != TaskItemStatus.Closed);
         }
         else if (selectedFilterType == "overdueStep")
         {

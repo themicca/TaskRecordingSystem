@@ -16,36 +16,85 @@
         <p><em>Loading...</em></p>
     }
     else {
-        <dl class="row">
-            <dt class="col-sm-2">Title</dt>
-            <dd class="col-sm-10">@taskItem.Title</dd>
-            <dt class="col-sm-2">Description</dt>
-            <dd class="col-sm-10">@taskItem.Description</dd>
-            <dt class="col-sm-2">Reporter</dt>
-            <dd class="col-sm-10">@($"{reporter?.FirstName} {reporter?.Surname}")</dd>
-            <dt class="col-sm-2">Assignee</dt>
-            <dd class="col-sm-10">@($"{assignee?.FirstName} {assignee?.Surname}")</dd>
-            <dt class="col-sm-2">Company</dt>
-            <dd class="col-sm-10">@company?.Name</dd>
-            <dt class="col-sm-2">Priority</dt>
-            <dd class="col-sm-10">@taskItem.Priority</dd>
-            <dt class="col-sm-2">Status</dt>
-            <dd class="col-sm-10">@taskItem.Status</dd>
-            <dt class="col-sm-2">Reported Date</dt>
-            <dd class="col-sm-10">@taskItem.ReportedDate</dd>
-            <dt class="col-sm-2">Due Date</dt>
-            <dd class="col-sm-10">@taskItem.DueDate</dd>
-            <dt class="col-sm-2">Resolved Date</dt>
-            <dd class="col-sm-10">@taskItem.ResolvedDate</dd>
-        </dl>
-        <div>
-            <a href="@($"/taskitems/edit?id={taskItem.Id}")">Edit</a> |
-            <a href="@($"/taskitems")">Back to List</a>
+
+        <div class="row">
+            <!-- Levý sloupec s detaily -->
+            <div class="col-md-8">
+                <h3>TaskItem</h3>
+                <dl class="row">
+                    <dt class="col-sm-3">Title</dt>
+                    <dd class="col-sm-9">@taskItem.Title</dd>
+
+                    <dt class="col-sm-3">Description</dt>
+                    <dd class="col-sm-9">@taskItem.Description</dd>
+
+                    <dt class="col-sm-3">Reporter</dt>
+                    <dd class="col-sm-9">@($"{reporter?.FirstName} {reporter?.Surname}")</dd>
+
+                    <dt class="col-sm-3">ReporterId</dt>
+                    <dd class="col-sm-9">@reporter?.Id</dd>
+
+                    <dt class="col-sm-3">Assignee</dt>
+                    <dd class="col-sm-9">@($"{assignee?.FirstName} {assignee?.Surname}")</dd>
+
+                    <dt class="col-sm-3">AssigneeId</dt>
+                    <dd class="col-sm-9">@assignee?.Id</dd>
+
+                    <dt class="col-sm-3">Company</dt>
+                    <dd class="col-sm-9">@taskItem.Company.Name</dd>
+
+                    <dt class="col-sm-3">CompanyId</dt>
+                    <dd class="col-sm-9">@taskItem.Company.Id</dd>
+
+                    <dt class="col-sm-3">Priority</dt>
+                    <dd class="col-sm-9">@taskItem.Priority</dd>
+
+                    <dt class="col-sm-3">Status</dt>
+                    <dd class="col-sm-9">@taskItem.Status</dd>
+
+                    <dt class="col-sm-3">Reported Date</dt>
+                    <dd class="col-sm-9">@taskItem.ReportedDate</dd>
+
+                    <dt class="col-sm-3">Due Date</dt>
+                    <dd class="col-sm-9">@taskItem.DueDate</dd>
+
+                    <dt class="col-sm-3">Resolved Date</dt>
+                    <dd class="col-sm-9">@taskItem.ResolvedDate</dd>
+                </dl>
+
+                <a href="/taskitems/edit/@taskItem.Id">Edit</a> |
+                <a href="/taskitems">Back to List</a>
+            </div>
+
+            <FileUpload TaskItem="@taskItem" />
         </div>
+
+        <h4>Checklist</h4>
+        @foreach (var item in taskItem.ChecklistItems)
+        {
+            <div class="d-flex align-items-start mb-2">
+                <input type="checkbox"
+                       class="form-check-input me-2"
+                       style="width: 1.2em; height: 1.2em;"
+                       checked="@item.IsCompleted"
+                       disabled />
+
+                <textarea class="form-control me-2"
+                          style="width: 50%; resize: vertical;"
+                          rows="1"
+                          disabled>@item.Description</textarea>
+
+                <input type="date"
+                       class="form-control"
+                       style="width: 160px;"
+                       value="@item.DueDate.ToString("yyyy-MM-dd")"
+                       disabled />
+            </div>
+        }
+
+        <ChatSection TaskItemId="@Id" />
     }
 </div>
-
-<ChatSection TaskItemId="@Id"/>
 
 @code {
     private TaskItem? taskItem;
@@ -59,7 +108,7 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        taskItem = await context.Tasks.FirstOrDefaultAsync(m => m.Id == Id);
+        taskItem = await context.Tasks.Include(t => t.Attachments).Include(t => t.ChecklistItems).FirstOrDefaultAsync(m => m.Id == Id);
 
         if (taskItem is null)
         {

@@ -38,7 +38,7 @@ else
                     <ValidationMessage For="() => AppUser.Email" class="text-danger" />
                 </div>
                 <div class="mb-3">
-                    <label for="companyid" class="form-label">CompanyId:</label>
+                    <label for="companyid" class="form-label">Company:</label>
                     <InputSelect id="companyid" @bind-Value="AppUser.CompanyId" class="form-control">
                         <option value="">-- Select Company --</option>
                         @foreach (var company in Companies)
@@ -70,6 +70,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Companies = await context.Companies.ToListAsync();
         AppUser ??= await context.Users.FirstOrDefaultAsync(m => m.Id == Id);
 
         if (AppUser is null)

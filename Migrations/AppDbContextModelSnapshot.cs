@@ -45,7 +45,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.Attachment", b =>
@@ -71,7 +71,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("Attachments");
+                    b.ToTable("Attachments", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.ChatMessage", b =>
@@ -99,7 +99,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("ChatMessages");
+                    b.ToTable("ChatMessages", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.ChecklistItem", b =>
@@ -125,7 +125,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("ChecklistItems");
+                    b.ToTable("ChecklistItems", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.Company", b =>
@@ -143,7 +143,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Companies");
+                    b.ToTable("Companies", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.TaskItem", b =>
@@ -192,7 +192,7 @@ namespace TaskRecordingSystem.Migrations
 
                     b.HasIndex("ReporterId");
 
-                    b.ToTable("Tasks");
+                    b.ToTable("Tasks", (string)null);
                 });
 
             modelBuilder.Entity("TaskRecordingSystem.Models.AppUser", b =>
