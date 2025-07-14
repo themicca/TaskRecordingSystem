@@ -7,29 +7,29 @@
     <div class="alert alert-danger">@ErrorMessage</div>
 }
 
-<EditForm Model="registerUser" OnValidSubmit="HandleCreateUser">
+<EditForm Model="createUser" OnValidSubmit="HandleCreateUser">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
     <div class="mb-3">
         <label for="firstname" class="form-label">First Name:</label>
-        <InputText id="firstname" @bind-Value="registerUser.FirstName" class="form-control" />
-        <ValidationMessage For="() => registerUser.FirstName" />
+        <InputText id="firstname" @bind-Value="createUser.FirstName" class="form-control" />
+        <ValidationMessage For="() => createUser.FirstName" />
     </div>
 
     <div class="mb-3">
         <label for="surname" class="form-label">Surname:</label>
-        <InputText id="surname" @bind-Value="registerUser.Surname" class="form-control" />
-        <ValidationMessage For="() => registerUser.Surname" />
+        <InputText id="surname" @bind-Value="createUser.Surname" class="form-control" />
+        <ValidationMessage For="() => createUser.Surname" />
     </div>
 
     <div class="mb-3">
         <label for="email" class="form-label">Email:</label>
-        <InputText id="email" @bind-Value="registerUser.Email" class="form-control" />
-        <ValidationMessage For="() => registerUser.Email" />
+        <InputText id="email" @bind-Value="createUser.Email" class="form-control" />
+        <ValidationMessage For="() => createUser.Email" />
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(registerUser.Password))
+    @if (!string.IsNullOrWhiteSpace(createUser.Password))
     {
         <ul class="list-unstyled mb-3">
             <li class="@GetCriteriaClass(HasMinLength)">✔️ At least 8 characters</li>
@@ -42,27 +42,27 @@
 
     <div class="mb-3">
         <label for="password" class="form-label">Password:</label>
-        <InputText id="password" @bind-Value="registerUser.Password" type="password" class="form-control" />
-        <ValidationMessage For="() => registerUser.Password" />
+        <InputText id="password" @bind-Value="createUser.Password" type="password" class="form-control" />
+        <ValidationMessage For="() => createUser.Password" />
     </div>
 
     <div class="mb-3">
         <label for="companyid" class="form-label">Company:</label>
-        <InputSelect id="companyid" @bind-Value="registerUser.CompanyId" class="form-control">
+        <InputSelect id="companyid" @bind-Value="createUser.CompanyId" class="form-control">
             <option value="0">-- Select Company --</option>
             @foreach (var company in Companies)
             {
                 <option value="@company.Id">@company.Name</option>
             }
         </InputSelect>
-        <ValidationMessage For="() => registerUser.CompanyId" />
+        <ValidationMessage For="() => createUser.CompanyId" />
     </div>
 
     <button type="submit" class="btn btn-primary">@SubmitText</button>
 </EditForm>
 
 @code {
-    private RegisterUser registerUser = new();
+    private RegisterUser createUser = new();
     private List<Company> Companies = new();
     private string? ErrorMessage;
 
@@ -79,29 +79,29 @@
     {
         ErrorMessage = null;
 
-        if (registerUser.CompanyId == 0)
+        if (createUser.CompanyId == 0)
         {
             ErrorMessage = "Please select a valid company.";
             return;
         }
 
         using var context = DbFactory.CreateDbContext();
-        var existing = await context.Users.FirstOrDefaultAsync(u => u.Email == registerUser.Email);
+        var existing = await context.Users.FirstOrDefaultAsync(u => u.Email == createUser.Email);
         if (existing != null)
         {
             ErrorMessage = "Email is already registered.";
             return;
         }
 
-        var hashedPassword = HashPassword(registerUser.Password);
+        var hashedPassword = HashPassword(createUser.Password);
 
         var user = new AppUser
             {
-                FirstName = registerUser.FirstName,
-                Surname = registerUser.Surname,
-                Email = registerUser.Email,
+                FirstName = createUser.FirstName,
+                Surname = createUser.Surname,
+                Email = createUser.Email,
                 PasswordHash = hashedPassword,
-                CompanyId = registerUser.CompanyId
+                CompanyId = createUser.CompanyId
             };
 
         context.Users.Add(user);
@@ -118,11 +118,11 @@
         return Convert.ToBase64String(hash);
     }
 
-    private bool HasMinLength => registerUser.Password.Length >= 8;
-    private bool HasUppercase => registerUser.Password.Any(char.IsUpper);
-    private bool HasLowercase => registerUser.Password.Any(char.IsLower);
-    private bool HasDigit => registerUser.Password.Any(char.IsDigit);
-    private bool HasSpecialChar => registerUser.Password.Any(c => !char.IsLetterOrDigit(c));
+    private bool HasMinLength => createUser.Password.Length >= 8;
+    private bool HasUppercase => createUser.Password.Any(char.IsUpper);
+    private bool HasLowercase => createUser.Password.Any(char.IsLower);
+    private bool HasDigit => createUser.Password.Any(char.IsDigit);
+    private bool HasSpecialChar => createUser.Password.Any(c => !char.IsLetterOrDigit(c));
 
     private string GetCriteriaClass(bool condition)
     {
