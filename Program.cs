@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using TaskRecordingSystem.Components;
@@ -24,6 +25,12 @@ namespace TaskRecordingSystem
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
+            var keyPath = Path.Combine(AppContext.BaseDirectory, "keys");
+
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+                .SetApplicationName("TaskRecordingSystem");
+
             builder.Services.AddScoped<AuthenticationService>();
             builder.Services.AddScoped<ProtectedLocalStorage>();
 
@@ -47,6 +54,7 @@ namespace TaskRecordingSystem
             }
 
             app.UseHttpsRedirection();
+            app.UseStaticFiles();
 
             app.UseStaticFiles(new StaticFileOptions
             {
